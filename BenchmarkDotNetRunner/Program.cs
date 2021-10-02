@@ -1,4 +1,6 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System.Linq;
+
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
@@ -24,28 +26,37 @@ namespace BenchmarkDotNetSamples.Runner
 
                 // Adding first job
                 .AddJob(Job.Default
-                    .WithRuntime(CoreRuntime.Core50) // .NET Framework 4.7.2
-                    .WithPlatform(Platform.X64) // Run as x64 application
-                    .WithJit(Jit.RyuJit) // Use LegacyJIT instead of the default RyuJIT
-                    .WithGcServer(true) // Use Server GC
+                    .WithRuntime(CoreRuntime.Core50)
+                    .WithPlatform(Platform.X64)
+                    .WithJit(Jit.RyuJit)
+                    .WithGcServer(true)
                 )
 
                 // Adding second job
                 .AddJob(Job.Default
                     .AsBaseline() // It will be marked as baseline
-                    .WithRuntime(CoreRuntime.Core50) // .NET Framework 4.7.2
-                    .WithPlatform(Platform.X64) // Run as x64 application
-                    .WithJit(Jit.RyuJit) // Use LegacyJIT instead of the default RyuJIT
-                    .WithGcServer(true) // Use Server GC
+                    .WithRuntime(ClrRuntime.Net472)
+                    .WithPlatform(Platform.X64)
+                    .WithJit(Jit.RyuJit)
+                    .WithGcServer(true)
                     //.WithEnvironmentVariable("Key", "Value") // Setting an environment variable
                     //.WithWarmupCount(0) // Disable warm-up stage
                 );
 
-            foreach (var l in DefaultConfig.Instance.GetLoggers())
-                myConfig.AddLogger(l);
+
+            var defaultConfig = DefaultConfig.Instance;
+
+            myConfig.AddColumnProvider(defaultConfig.GetColumnProviders().ToArray());
+            myConfig.AddExporter(defaultConfig.GetExporters().ToArray());
+            myConfig.AddDiagnoser(defaultConfig.GetDiagnosers().ToArray());
+            myConfig.AddAnalyser(defaultConfig.GetAnalysers().ToArray());
+            //myConfig.AddJob(defaultConfig.GetJobs().ToArray());
+            myConfig.AddValidator(defaultConfig.GetValidators().ToArray());
+            //myConfig.UnionRule = ConfigUnionRule.AlwaysUseGlobal; // Overriding the default
+            myConfig.AddLogger(defaultConfig.GetLoggers().ToArray());
             #endregion
 
-            _ = BenchmarkRunner.Run<MethodWrapper>();
+            _ = BenchmarkRunner.Run<MethodWrapper>(myConfig);
         }
     }
 }
